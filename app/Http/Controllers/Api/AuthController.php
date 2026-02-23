@@ -38,6 +38,7 @@ class AuthController extends Controller
             'role'     => 'required|in:super_admin,center_admin',
             'phone'    => 'nullable|string|max:20',
             'address'  => 'nullable|string|max:255',
+            'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -47,6 +48,12 @@ class AuthController extends Controller
         try {
             DB::beginTransaction();
 
+            $profile_photo_path = null;
+            $file = $request->file('profile_image') ?? $request->file('profile_photo');
+            if ($file) {
+                $profile_photo_path = $file->store('profile_photos', 'public');
+            }
+
             // Create base User
             $user = User::create([
                 'name'     => $request->name,
@@ -55,6 +62,7 @@ class AuthController extends Controller
                 'role'     => $request->role,
                 'phone'    => $request->phone,
                 'address'  => $request->address,
+                'profile_photo_path' => $profile_photo_path,
                 'is_active' => true,
             ]);
 
@@ -148,13 +156,14 @@ class AuthController extends Controller
             $data = $request->only(['name', 'phone', 'address']);
 
             // Handle profile image upload
-            if ($request->hasFile('profile_image')) {
+            $file = $request->file('profile_image') ?? $request->file('profile_photo');
+            if ($file) {
                 // Delete old image if exists
                 if ($user->profile_photo_path) {
                     Storage::disk('public')->delete($user->profile_photo_path);
                 }
 
-                $path = $request->file('profile_image')->store('profile_photos', 'public');
+                $path = $file->store('profile_photos', 'public');
                 $data['profile_photo_path'] = $path;
             }
 
