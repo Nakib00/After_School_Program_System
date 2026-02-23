@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 
 /**
@@ -37,6 +38,7 @@ class AuthController extends Controller
             'role'     => 'required|in:super_admin,center_admin,teacher,parent,student',
             'phone'    => 'nullable|string|max:20',
             'address'  => 'nullable|string|max:255',
+            'center_id' => 'nullable|exists:centers,id',
         ]);
 
         if ($validator->fails()) {
@@ -62,11 +64,13 @@ class AuthController extends Controller
             if ($request->role === 'student') {
                 Student::create([
                     'user_id' => $user->id,
+                    'center_id' => $request->center_id,
                     // other default fields for student
                 ]);
             } elseif ($request->role === 'teacher') {
                 Teacher::create([
                     'user_id' => $user->id,
+                    'center_id' => $request->center_id,
                     // other default fields for teacher
                 ]);
             }
@@ -134,5 +138,83 @@ class AuthController extends Controller
     {
         auth()->logout();
         return $this->success([], 'Successfully logged out.');
+    }
+
+    /**
+     * Update authenticated user profile.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function updateProfile(Request $request)
+    {
+        $user = auth()->user();
+
+        $validator = Validator::make($request->all(), [
+            'name'    => 'nullable|string|max:255',
+            'phone'   => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:255',
+            'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationError($validator->errors());
+        }
+
+        try {
+            $data = $request->only(['name', 'phone', 'address']);
+
+            // Handle profile image upload
+            if ($request->hasFile('profile_image')) {
+                // Delete old image if exists
+                if ($user->profile_photo_path) {
+                    Storage::disk('public')->delete($user->profile_photo_path);
+                }
+
+                $path = $request->file('profile_image')->store('profile_photos', 'public');
+                $data['profile_photo_path'] = $path;
+            }
+
+            $user->update($data);
+
+            return $this->success($user, 'Profile updated successfully.');
+        } catch (\Exception $e) {
+            return $this->error('Failed to update profile: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Change authenticated user password.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function changePassword(Request $request)
+    {
+        $user = auth()->user();
+
+        $validator = Validator::make($request->all(), [
+            'current_password' => 'required|string',
+            'new_password'     => 'required|string|min:6|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationError($validator->errors());
+        }
+
+        // Check if current password matches
+        if (!Hash::check($request->current_password, $user->password)) {
+            return $this->error('Current password does not match.', 422);
+        }
+
+        try {
+            $user->update([
+                'password' => Hash::make($request->new_password)
+            ]);
+
+            return $this->success([], 'Password changed successfully.');
+        } catch (\Exception $e) {
+            return $this->error('Failed to change password: ' . $e->getMessage(), 500);
+        }
     }
 }
