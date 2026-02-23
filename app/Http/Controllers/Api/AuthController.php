@@ -35,10 +35,9 @@ class AuthController extends Controller
             'name'     => 'required|string|max:255',
             'email'    => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6|confirmed',
-            'role'     => 'required|in:super_admin,center_admin,teacher,parent,student',
+            'role'     => 'required|in:super_admin,center_admin',
             'phone'    => 'nullable|string|max:20',
             'address'  => 'nullable|string|max:255',
-            'center_id' => 'nullable|exists:centers,id',
         ]);
 
         if ($validator->fails()) {
@@ -58,22 +57,6 @@ class AuthController extends Controller
                 'address'  => $request->address,
                 'is_active' => true,
             ]);
-
-            // Handle role-specific data if needed
-            // For example, if we need to create entry in teachers or students table
-            if ($request->role === 'student') {
-                Student::create([
-                    'user_id' => $user->id,
-                    'center_id' => $request->center_id,
-                    // other default fields for student
-                ]);
-            } elseif ($request->role === 'teacher') {
-                Teacher::create([
-                    'user_id' => $user->id,
-                    'center_id' => $request->center_id,
-                    // other default fields for teacher
-                ]);
-            }
 
             DB::commit();
 
