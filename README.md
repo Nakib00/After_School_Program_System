@@ -24,6 +24,7 @@ A comprehensive school management system designed for after-school programs, fea
 | `/login`           | POST   | Authenticate user and get token     | All           |
 | `/logout`          | POST   | Invalidate current session          | All           |
 | `/profile`         | GET    | Current user information            | All           |
+| `/center-admins`   | GET    | List all center admin users         | Super Admin   |
 | `/update-profile`  | POST   | Update name, address, profile image | All           |
 | `/change-password` | POST   | Update account password             | All           |
 

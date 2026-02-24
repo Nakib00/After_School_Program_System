@@ -16,9 +16,13 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/change-password', [AuthController::class, 'changePassword']);
 
     // Role-guarded examples
-    Route::get('/super-admin/dashboard', function () {
-        return response()->json(['message' => 'Welcome Super Admin']);
-    })->middleware('role:super_admin');
+    Route::middleware('role:super_admin')->group(function () {
+        Route::get('/super-admin/dashboard', function () {
+            return response()->json(['message' => 'Welcome Super Admin']);
+        });
+        Route::get('/center-admins', [AuthController::class, 'indexCenterAdmins']);
+        Route::get('/parents', [AuthController::class, 'indexParents']);
+    });
 
     Route::get('/center-admin/dashboard', function () {
         return response()->json(['message' => 'Welcome Center Admin']);

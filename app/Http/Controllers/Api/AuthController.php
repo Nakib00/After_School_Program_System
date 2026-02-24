@@ -209,4 +209,28 @@ class AuthController extends Controller
             return $this->error('Failed to change password: ' . $e->getMessage(), 500);
         }
     }
+
+    /**
+     * List all users with the center_admin role.
+     * Accessible by: super_admin.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function indexCenterAdmins()
+    {
+        $centerAdmins = User::where('role', 'center_admin')->get();
+        return $this->success($centerAdmins, 'Center admins retrieved successfully.');
+    }
+
+    /**
+     * List all users with the parents role.
+     * Accessible by: super_admin.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function indexParents()
+    {
+        $parents = User::where('role', 'parents')->get();
+        return $this->success($parents, 'Parents retrieved successfully.');
+    }
 }
