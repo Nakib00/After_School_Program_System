@@ -20,6 +20,7 @@ class Student extends Model
         'enrollment_date',
         'subjects',
         'current_level',
+        'monthly_fee',
         'status',
     ];
 
