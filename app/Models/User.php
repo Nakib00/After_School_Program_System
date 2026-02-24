@@ -50,7 +50,7 @@ class User extends Authenticatable implements JWTSubject
     public function getProfilePhotoPathAttribute($value): ?string
     {
         if (!$value) return null;
-        return Storage::url($value);
+        return url(Storage::url($value));
     }
 
     /**
