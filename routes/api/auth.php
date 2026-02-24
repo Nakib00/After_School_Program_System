@@ -21,12 +21,15 @@ Route::middleware('auth:api')->group(function () {
             return response()->json(['message' => 'Welcome Super Admin']);
         });
         Route::get('/center-admins', [AuthController::class, 'indexCenterAdmins']);
+    });
+
+    Route::middleware('role:center_admin')->group(function () {
+        Route::get('/center-admin/dashboard', function () {
+            return response()->json(['message' => 'Welcome Center Admin']);
+        });
         Route::get('/parents', [AuthController::class, 'indexParents']);
     });
 
-    Route::get('/center-admin/dashboard', function () {
-        return response()->json(['message' => 'Welcome Center Admin']);
-    })->middleware('role:center_admin');
 
     Route::get('/teacher/dashboard', function () {
         return response()->json(['message' => 'Welcome Teacher']);

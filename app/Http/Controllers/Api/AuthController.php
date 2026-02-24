@@ -35,7 +35,7 @@ class AuthController extends Controller
             'name'     => 'required|string|max:255',
             'email'    => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6|confirmed',
-            'role'     => 'required|in:super_admin,center_admin,parents',
+            'role'     => 'required|in:super_admin,center_admin,parent',
             'phone'    => 'nullable|string|max:20',
             'address'  => 'nullable|string|max:255',
             'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -230,7 +230,7 @@ class AuthController extends Controller
      */
     public function indexParents()
     {
-        $parents = User::where('role', 'parents')->get();
+        $parents = User::where('role', 'parent')->get();
         return $this->success($parents, 'Parents retrieved successfully.');
     }
 }

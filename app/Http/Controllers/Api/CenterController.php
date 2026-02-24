@@ -41,6 +41,7 @@ class CenterController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name'     => 'required|string|max:150',
+            'admin_id' => 'required|exists:users,id',
             'address'  => 'nullable|string',
             'city'     => 'nullable|string|max:100',
             'phone'    => 'nullable|string|max:20',
@@ -53,7 +54,6 @@ class CenterController extends Controller
 
         try {
             $data = $request->all();
-            $data['admin_id'] = auth()->id();
             $center = Center::create($data);
             return $this->success($center, 'Center created successfully.', 201);
         } catch (\Exception $e) {
@@ -94,10 +94,11 @@ class CenterController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'name'     => 'nullable|string|max:150',
-            'address'  => 'nullable|string',
-            'city'     => 'nullable|string|max:100',
-            'phone'    => 'nullable|string|max:20',
+            'name'      => 'nullable|string|max:150',
+            'admin_id'  => 'nullable|exists:users,id',
+            'address'   => 'nullable|string',
+            'city'      => 'nullable|string|max:100',
+            'phone'     => 'nullable|string|max:20',
             'is_active' => 'nullable|boolean',
         ]);
 
@@ -107,7 +108,6 @@ class CenterController extends Controller
 
         try {
             $data = $request->all();
-            $data['admin_id'] = auth()->id();
             $center->update($data);
             return $this->success($center, 'Center updated successfully.');
         } catch (\Exception $e) {
