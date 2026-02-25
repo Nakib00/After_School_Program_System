@@ -150,6 +150,21 @@ class SubmissionController extends Controller
     }
 
     /**
+     * Get submission by assignment ID.
+     */
+    public function getByAssignmentId($assignmentId)
+    {
+        $submission = Submission::with(['assignment.worksheet', 'grader'])
+            ->where('assignment_id', $assignmentId)
+            ->first();
+
+        if (!$submission) return $this->error('Submission not found.', 404);
+
+        $submission->file_url = asset('storage/' . $submission->submitted_file);
+        return $this->success($submission, 'Submission details retrieved successfully.');
+    }
+
+    /**
      * Internal method to update student progress after grading.
      */
     private function updateStudentProgress(Submission $submission)

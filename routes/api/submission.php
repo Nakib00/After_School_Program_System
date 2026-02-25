@@ -13,8 +13,9 @@ Route::middleware('auth:api')->group(function () {
         Route::middleware('role:super_admin,teacher')->patch('/{id}/grade', [SubmissionController::class, 'grade']);
 
         // Teacher, Center Admin, Super Admin (List pending)
-        Route::middleware('role:super_admin,center_admin,teacher')->group(function () {
+        Route::middleware('role:super_admin,center_admin,teacher,student')->group(function () {
             Route::get('/pending', [SubmissionController::class, 'pendingSubmissions']);
+            Route::get('/assignment/{assignmentId}', [SubmissionController::class, 'getByAssignmentId']);
             Route::get('/{id}', [SubmissionController::class, 'show']);
         });
     });
