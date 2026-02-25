@@ -22,7 +22,7 @@ class LevelController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Level::query();
+        $query = Level::with('subject');
 
         if ($request->has('subject_id')) {
             $query->where('subject_id', $request->subject_id);
@@ -50,6 +50,7 @@ class LevelController extends Controller
         }
 
         $level = Level::create($request->all());
+        $level->load('subject');
         return $this->success($level, 'Curriculum level created successfully.', 201);
     }
 
@@ -74,6 +75,7 @@ class LevelController extends Controller
         }
 
         $level->update($request->all());
+        $level->load('subject');
         return $this->success($level, 'Curriculum level updated successfully.');
     }
 

@@ -21,7 +21,7 @@ class AssignmentController extends Controller
 
     /**
      * List assignments (role-scoped).
-     * Accessible by: center_admin, teacher, super_admin.
+     * Accessible by: center_admin, teacher, student, super_admin.
      */
     public function index(Request $request)
     {
@@ -30,6 +30,10 @@ class AssignmentController extends Controller
 
         if ($user->role === 'teacher') {
             $query->where('teacher_id', $user->id);
+        } elseif ($user->role === 'student') {
+            $query->whereHas('student', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            });
         } elseif ($user->role === 'center_admin') {
             // Filter by center if needed
             if ($request->has('center_id')) {
