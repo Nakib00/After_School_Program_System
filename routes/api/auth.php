@@ -23,7 +23,7 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/center-admins', [AuthController::class, 'indexCenterAdmins']);
     });
 
-    Route::middleware('role:center_admin')->group(function () {
+    Route::middleware('role:center_admin,super_admin')->group(function () {
         Route::get('/center-admin/dashboard', function () {
             return response()->json(['message' => 'Welcome Center Admin']);
         });

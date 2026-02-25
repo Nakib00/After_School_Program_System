@@ -62,6 +62,7 @@ class StudentController extends Controller
             'subjects'        => 'nullable|array',
             'current_level'   => 'nullable|string|max:20',
             'profile_image'   => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'address'         => 'nullable|string|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -85,6 +86,7 @@ class StudentController extends Controller
                 'role'     => 'student',
                 'profile_photo_path' => $profile_photo_path,
                 'is_active' => true,
+                'address' => $request->address,
             ]);
 
             // Create Student record
@@ -156,6 +158,7 @@ class StudentController extends Controller
             'current_level'   => 'nullable|string|max:20',
             'status'          => 'nullable|in:active,inactive,completed',
             'profile_image'   => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'address'         => 'nullable|string|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -170,7 +173,9 @@ class StudentController extends Controller
             if ($request->has('name')) {
                 $userData['name'] = $request->name;
             }
-
+            if ($request->has('address')) {
+                $userData['address'] = $request->address;
+            }
             $file = $request->file('profile_image') ?? $request->file('profile_photo');
             if ($file) {
                 // Delete old image if exists
