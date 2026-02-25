@@ -12,7 +12,9 @@ Route::middleware('auth:api')->group(function () {
             Route::post('/', [TeacherController::class, 'store']);
             Route::get('/{id}', [TeacherController::class, 'show']);
             Route::put('/{id}', [TeacherController::class, 'update']);
+            Route::delete('/{id}', [TeacherController::class, 'destroy']);
             Route::post('/assign-students', [TeacherController::class, 'assignStudent']);
+            Route::post('/unassign-students', [TeacherController::class, 'unassignStudent']);
         });
 
         // Super Admin, Center Admin, Teacher

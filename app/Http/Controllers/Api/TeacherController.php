@@ -209,7 +209,7 @@ class TeacherController extends Controller
     public function assignStudent(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'teacher_id'  => 'required|exists:teachers,id',
+            'teacher_id'  => 'required|exists:teachers,user_id',
             'student_ids' => 'required|array',
             'student_ids.*' => 'exists:students,id',
         ]);
@@ -219,15 +219,72 @@ class TeacherController extends Controller
         }
 
         try {
-            $teacher = Teacher::find($request->teacher_id);
-
-            // Assigning by updating the teacher_id in students table
+            // The teacher_id in request is actually the user_id of the teacher
             Student::whereIn('id', $request->student_ids)
-                ->update(['teacher_id' => $teacher->user_id]);
+                ->update(['teacher_id' => $request->teacher_id]);
 
             return $this->success([], 'Students assigned to teacher successfully.');
         } catch (\Exception $e) {
             return $this->error('Failed to assign students: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Unassign students from teacher.
+     * Accessible by: super_admin, center_admin.
+     */
+    public function unassignStudent(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'student_ids' => 'required|array',
+            'student_ids.*' => 'exists:students,id',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationError($validator->errors());
+        }
+
+        try {
+            // Set teacher_id to null for these students
+            Student::whereIn('id', $request->student_ids)
+                ->update(['teacher_id' => null]);
+
+            return $this->success([], 'Students unassigned successfully.');
+        } catch (\Exception $e) {
+            return $this->error('Failed to unassign students: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Delete a teacher account.
+     * Accessible by: super_admin, center_admin.
+     */
+    public function destroy($id)
+    {
+        $teacher = Teacher::find($id);
+
+        if (!$teacher) {
+            return $this->error('Teacher not found.', 404);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $userId = $teacher->user_id;
+
+            // Delete specific teacher record
+            $teacher->delete();
+
+            // Delete associated user account
+            // This will automatically nullify teacher_id in students table thanks to DB constraint
+            User::destroy($userId);
+
+            DB::commit();
+
+            return $this->success([], 'Teacher account deleted successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->error('Failed to delete teacher: ' . $e->getMessage(), 500);
         }
     }
 }
