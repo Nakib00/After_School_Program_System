@@ -186,18 +186,18 @@ class TeacherController extends Controller
      */
     public function assignedStudents(Request $request, $id)
     {
-        $teacher = Teacher::find($id);
+        // Find teacher by user_id
+        $teacher = Teacher::where('user_id', $id)->first();
         if (!$teacher) return $this->error('Teacher not found.', 404);
 
         // Security check for the teacher themselves
-        if (auth()->user()->role === 'teacher' && auth()->user()->id !== $teacher->user_id) {
+        // $id is the teacher's user_id
+        if (auth()->user()->role === 'teacher' && auth()->user()->id != $id) {
             return $this->error('Unauthorized.', 403);
         }
 
-        // We can get students either via the teacher_id column in students table
-        // or through the students() relationship (hasManyThrough assignments).
-        // Since many students might be assigned directly to a teacher we'll check the Student table.
-        $students = Student::with('user')->where('teacher_id', $teacher->user_id)->get();
+        // Get students assigned to this teacher (by user_id)
+        $students = Student::with('user')->where('teacher_id', $id)->get();
 
         return $this->success($students, 'Assigned students retrieved successfully.');
     }
