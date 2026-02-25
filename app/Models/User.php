@@ -81,6 +81,12 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasMany(Notification::class);
     }
 
+    // Center managed by the user (if center_admin)
+    public function center()
+    {
+        return $this->hasOne(Center::class, 'admin_id');
+    }
+
     /**
      * Helper functions
      */

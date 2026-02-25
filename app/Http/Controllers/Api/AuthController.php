@@ -104,8 +104,19 @@ class AuthController extends Controller
             return $this->error('Invalid credentials.', 401);
         }
 
+        $user = auth()->user();
+
+        // Include role-specific data
+        if ($user->role === 'center_admin') {
+            $user->load('center');
+        } elseif ($user->role === 'student') {
+            $user->load(['student.center', 'student.teacher']);
+        } elseif ($user->role === 'parent') {
+            $user->load('children');
+        }
+
         return $this->success([
-            'user'  => auth()->user(),
+            'user'  => $user,
             'token' => $token,
         ], 'Login successful.');
     }
