@@ -379,6 +379,160 @@ class StudentController extends Controller
     }
 
     /**
+     * Get detailed reports for all children of a parent.
+     * Accessible by: parent.
+     */
+    public function childrenReports(Request $request)
+    {
+        $user = $request->user();
+
+        if ($user->role !== 'parent') {
+            return $this->error('Unauthorized. Only parents can access this endpoint.', 403);
+        }
+
+        $students = Student::with(['user', 'center', 'teacher.teacher'])
+            ->where('parent_id', $user->id)
+            ->get();
+
+        if ($students->isEmpty()) {
+            return $this->success([], 'No children found for this parent.');
+        }
+
+        $reports = $students->map(function ($student) {
+            return $this->getDetailedReport($student);
+        });
+
+        return $this->success($reports, 'Children reports retrieved successfully.');
+    }
+
+    /**
+     * Get fee details for all children of a parent.
+     * Accessible by: parent.
+     */
+    public function childrenFees(Request $request)
+    {
+        $user = $request->user();
+
+        if ($user->role !== 'parent') {
+            return $this->error('Unauthorized. Only parents can access this endpoint.', 403);
+        }
+
+        $students = Student::with(['user', 'fees'])
+            ->where('parent_id', $user->id)
+            ->get();
+
+        if ($students->isEmpty()) {
+            return $this->success([], 'No children found for this parent.');
+        }
+
+        $feesSummary = $students->map(function ($student) {
+            return [
+                'student_info' => [
+                    'id'            => $student->id,
+                    'name'          => $student->user->name,
+                    'enrollment_no' => $student->enrollment_no,
+                ],
+                'fees' => $student->fees
+            ];
+        });
+
+        return $this->success($feesSummary, 'Children fees retrieved successfully.');
+    }
+
+    /**
+     * Get fee history for a student.
+     * Accessible by: super_admin, center_admin, parent.
+     */
+    public function fees($id)
+    {
+        $student = Student::find($id);
+        if (!$student) return $this->error('Student not found.', 404);
+
+        $user = auth()->user();
+
+        // Access check for parent
+        if ($user->role === 'parent' && $student->parent_id !== $user->id) {
+            return $this->error('Unauthorized.', 403);
+        }
+
+        // Access check for admin/super admin
+        if (!in_array($user->role, ['super_admin', 'center_admin', 'parent'])) {
+            return $this->error('Unauthorized.', 403);
+        }
+
+        $fees = $student->fees()->latest('month')->get();
+        return $this->success($fees, 'Student fee history retrieved successfully.');
+    }
+
+    /**
+     * Get assignments, worksheets, and submission/grade info for all children of a parent.
+     * Accessible by: parent.
+     */
+    public function childrenAssignments(Request $request)
+    {
+        $user = $request->user();
+
+        if ($user->role !== 'parent') {
+            return $this->error('Unauthorized. Only parents can access this endpoint.', 403);
+        }
+
+        $students = Student::with(['user', 'assignments.worksheet', 'assignments.submission', 'assignments.teacher'])
+            ->where('parent_id', $user->id)
+            ->get();
+
+        if ($students->isEmpty()) {
+            return $this->success([], 'No children found for this parent.');
+        }
+
+        $assignmentsSummary = $students->map(function ($student) {
+            return [
+                'student_info' => [
+                    'id'            => $student->id,
+                    'name'          => $student->user->name,
+                    'enrollment_no' => $student->enrollment_no,
+                ],
+                'assignments' => $student->assignments
+            ];
+        });
+
+        return $this->success($assignmentsSummary, 'Children assignments retrieved successfully.');
+    }
+
+    /**
+     * Get attendance records for all children of a parent.
+     * Accessible by: parent.
+     */
+    public function childrenAttendance(Request $request)
+    {
+        $user = $request->user();
+
+        if ($user->role !== 'parent') {
+            return $this->error('Unauthorized. Only parents can access this endpoint.', 403);
+        }
+
+        $students = Student::with(['user', 'attendance'])
+            ->where('parent_id', $user->id)
+            ->get();
+
+        if ($students->isEmpty()) {
+            return $this->success([], 'No children found for this parent.');
+        }
+
+        $attendanceSummary = $students->map(function ($student) {
+            return [
+                'student_info' => [
+                    'id'            => $student->id,
+                    'name'          => $student->user->name,
+                    'enrollment_no' => $student->enrollment_no,
+                ],
+                'attendance' => $student->attendance
+            ];
+        });
+
+        return $this->success($attendanceSummary, 'Children attendance retrieved successfully.');
+    }
+
+    /**
      * Get detailed reports for a student.
      * Accessible by: student, parent, teacher, super_admin, center_admin.
      */
@@ -400,6 +554,15 @@ class StudentController extends Controller
             return $this->error('Unauthorized. You can only view your own students\' reports.', 403);
         }
 
+        $report = $this->getDetailedReport($student);
+        return $this->success($report, 'Student report retrieved successfully.');
+    }
+
+    /**
+     * Internal method to aggregate detailed student report data.
+     */
+    private function getDetailedReport($student)
+    {
         // Attendance Stats
         $attendanceData = $student->attendance();
         $totalAttendance = $attendanceData->count();
@@ -456,8 +619,9 @@ class StudentController extends Controller
                 ];
             });
 
-        return $this->success([
+        return [
             'student_info' => [
+                'id'            => $student->id,
                 'name'          => $student->user->name,
                 'enrollment_no' => $student->enrollment_no,
                 'grade'         => $student->grade,
@@ -467,6 +631,6 @@ class StudentController extends Controller
             'assignments' => $assignments,
             'progress'    => $progress,
             'performance' => $performance,
-        ], 'Student reports retrieved successfully.');
+        ];
     }
 }

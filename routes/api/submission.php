@@ -22,7 +22,7 @@ Route::middleware('auth:api')->group(function () {
         });
 
         // Authorized users (Student can view their own, others can view all)
-        Route::middleware('role:super_admin,center_admin,teacher,student')->group(function () {
+        Route::middleware('role:super_admin,center_admin,teacher,student,parent')->group(function () {
             Route::get('/assignment/{assignmentId}', [SubmissionController::class, 'getByAssignmentId']);
             Route::get('/{id}', [SubmissionController::class, 'show']);
             Route::get('/{id}/download', [SubmissionController::class, 'download']);

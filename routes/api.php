@@ -12,3 +12,4 @@ require __DIR__ . '/api/submission.php';
 require __DIR__ . '/api/attendance.php';
 require __DIR__ . '/api/fee.php';
 require __DIR__ . '/api/report.php';
+require __DIR__ . '/api/parent.php';
