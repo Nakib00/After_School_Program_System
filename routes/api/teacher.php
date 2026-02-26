@@ -20,6 +20,7 @@ Route::middleware('auth:api')->group(function () {
         // Super Admin, Center Admin, Teacher
         Route::middleware('role:super_admin,center_admin,teacher')->group(function () {
             Route::get('/{id}/students', [TeacherController::class, 'assignedStudents']);
+            Route::get('/dashboard', [TeacherController::class, 'dashboard']);
         });
     });
 });

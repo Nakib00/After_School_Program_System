@@ -24,16 +24,9 @@ Route::middleware('auth:api')->group(function () {
     });
 
     Route::middleware('role:center_admin,super_admin')->group(function () {
-        Route::get('/center-admin/dashboard', function () {
-            return response()->json(['message' => 'Welcome Center Admin']);
-        });
         Route::get('/parents', [AuthController::class, 'indexParents']);
     });
 
-
-    Route::get('/teacher/dashboard', function () {
-        return response()->json(['message' => 'Welcome Teacher']);
-    })->middleware('role:teacher');
 
     Route::get('/student/dashboard', function () {
         return response()->json(['message' => 'Welcome Student']);

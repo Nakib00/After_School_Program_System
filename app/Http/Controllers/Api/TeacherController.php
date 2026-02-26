@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Teacher;
 use App\Models\User;
 use App\Models\Student;
+use App\Models\Assignment;
+use App\Models\Submission;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -20,6 +22,52 @@ use Illuminate\Support\Facades\Storage;
 class TeacherController extends Controller
 {
     use ApiResponse;
+
+    /**
+     * Teacher dashboard statistics and recent activity.
+     * Accessible by: teacher.
+     */
+    public function dashboard(Request $request)
+    {
+        $user = $request->user();
+        $teacher = Teacher::where('user_id', $user->id)->first();
+
+        if (!$teacher) {
+            return $this->error('Teacher profile not found.', 404);
+        }
+
+        // Summary Statistics
+        $stats = [
+            'total_students' => Student::where('teacher_id', $user->id)->count(),
+            'total_assignments' => Assignment::where('teacher_id', $user->id)->count(),
+            'pending_submissions' => Submission::whereHas('assignment', function ($q) use ($user) {
+                $q->where('teacher_id', $user->id);
+            })->whereNull('graded_at')->count(),
+        ];
+
+        // Recent Activity
+        $recent_assignments = Assignment::where('teacher_id', $user->id)
+            ->with(['student.user', 'worksheet'])
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        $recent_submissions = Submission::whereHas('assignment', function ($q) use ($user) {
+            $q->where('teacher_id', $user->id);
+        })
+            ->with(['student.user', 'assignment.worksheet'])
+            ->whereNull('graded_at')
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        return $this->success([
+            'teacher' => $teacher->load('user', 'center'),
+            'stats' => $stats,
+            'recent_assignments' => $recent_assignments,
+            'recent_submissions' => $recent_submissions,
+        ], 'Teacher dashboard data retrieved successfully.');
+    }
 
     /**
      * List teachers for a center.
