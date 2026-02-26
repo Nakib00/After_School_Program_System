@@ -119,6 +119,81 @@ class SubmissionController extends Controller
     }
 
     /**
+     * Update existing grade: score, error_count, feedback.
+     * Accessible by: teacher, super_admin.
+     */
+    public function updateGrade(Request $request, $id)
+    {
+        $submission = Submission::find($id);
+        if (!$submission) return $this->error('Submission not found.', 404);
+
+        $validator = Validator::make($request->all(), [
+            'score'            => 'required|numeric|min:0|max:100',
+            'error_count'      => 'nullable|integer|min:0',
+            'teacher_feedback' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationError($validator->errors());
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $submission->update([
+                'score'            => $request->score,
+                'error_count'      => $request->error_count ?? 0,
+                'teacher_feedback' => $request->teacher_feedback,
+                'graded_by'        => auth()->user()->id,
+                'graded_at'        => now(),
+                // Keep status as 'graded'
+            ]);
+
+            // Ensure assignment status is 'graded'
+            $submission->assignment->update(['status' => 'graded']);
+
+            // Update student progress (re-calculate with updated score)
+            $this->updateStudentProgress($submission);
+
+            DB::commit();
+            return $this->success($submission, 'Submission grade updated successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->error('Failed to update grade: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * List all submissions with filters.
+     * Accessible by: center_admin, teacher, super_admin.
+     */
+    public function index(Request $request)
+    {
+        $query = Submission::with(['student.user', 'assignment.worksheet', 'grader']);
+
+        if ($request->has('assignment_id')) {
+            $query->where('assignment_id', $request->assignment_id);
+        }
+
+        if ($request->has('student_id')) {
+            $query->where('student_id', $request->student_id);
+        }
+
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->has('center_id')) {
+            $query->whereHas('student', function ($q) use ($request) {
+                $q->where('center_id', $request->center_id);
+            });
+        }
+
+        $submissions = $query->latest('submitted_at')->paginate($request->get('limit', 15));
+        return $this->success($submissions, 'Submissions retrieved successfully.');
+    }
+
+    /**
      * List pending submissions to grade.
      * Accessible by: center_admin, teacher, super_admin.
      */

@@ -20,13 +20,14 @@ Route::middleware('auth:api')->group(function () {
         Route::middleware('role:super_admin,center_admin')->group(function () {
             Route::get('/', [TeacherController::class, 'index']);
             Route::post('/', [TeacherController::class, 'store']);
-            Route::get('/{id}', [TeacherController::class, 'show']);
+
             Route::put('/{id}', [TeacherController::class, 'update']);
             Route::delete('/{id}', [TeacherController::class, 'destroy']);
         });
 
-        Route::middleware('role:super_admin,center_admin,teacher')->group(function () {
+        Route::middleware('role:super_admin,center_admin,teacher,parent')->group(function () {
             Route::get('/{id}/students', [TeacherController::class, 'assignedStudents']);
+            Route::get('/{id}', [TeacherController::class, 'show']);
         });
     });
 });

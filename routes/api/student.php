@@ -10,6 +10,7 @@ Route::middleware('auth:api')->group(function () {
         // Specific static routes first
         Route::middleware('role:student')->group(function () {
             Route::get('/my-assignments', [StudentController::class, 'myAssignments']);
+            Route::get('/dashboard', [StudentController::class, 'dashboard']);
         });
 
         // Super Admin and Center Admin
@@ -38,5 +39,6 @@ Route::middleware('auth:api')->group(function () {
 
         // Accessible by all authenticated users
         Route::get('/{id}/progress', [StudentController::class, 'progress']);
+        Route::get('/{id}/reports', [StudentController::class, 'reports']);
     });
 });

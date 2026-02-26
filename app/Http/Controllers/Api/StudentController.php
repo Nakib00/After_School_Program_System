@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Student;
 use App\Models\User;
+use App\Models\Submission;
+use App\Models\StudentProgress;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -307,17 +309,131 @@ class StudentController extends Controller
      * Student's fee history.
      * Accessible by: super_admin, center_admin, parent.
      */
-    public function fees($id)
+    /**
+     * Student dashboard data.
+     * Accessible by: student.
+     */
+    public function dashboard(Request $request)
     {
-        $student = Student::find($id);
-        if (!$student) return $this->error('Student not found.', 404);
+        $user = $request->user();
+        $student = Student::with(['user', 'center', 'teacher'])->where('user_id', $user->id)->first();
 
-        // Access check for parent
-        if (auth()->user()->role === 'parent' && $student->parent_id !== auth()->id()) {
-            return $this->error('Unauthorized.', 403);
+        if (!$student) {
+            return $this->error('Student profile not found.', 404);
         }
 
-        $fees = $student->fees()->get();
-        return $this->success($fees, 'Student fee history retrieved successfully.');
+        // Stats
+        $stats = [
+            'total_assignments' => $student->assignments()->count(),
+            'pending_assignments' => $student->assignments()->where('status', 'assigned')->count(),
+            'submitted_assignments' => $student->assignments()->where('status', 'submitted')->count(),
+            'graded_assignments' => $student->assignments()->where('status', 'graded')->count(),
+        ];
+
+        // Recent Assignments
+        $recentAssignments = $student->assignments()
+            ->with(['worksheet', 'teacher'])
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        // Progress
+        $progress = $student->progress()->with(['subject', 'level'])->get();
+
+        return $this->success([
+            'student'           => $student,
+            'stats'             => $stats,
+            'recent_assignments' => $recentAssignments,
+            'progress'          => $progress
+        ], 'Dashboard data retrieved successfully.');
+    }
+
+    /**
+     * Get detailed reports for a student.
+     * Accessible by: student, parent, teacher, super_admin, center_admin.
+     */
+    public function reports($id)
+    {
+        $student = Student::with(['user', 'center', 'teacher', 'parent'])->find($id);
+        if (!$student) return $this->error('Student not found.', 404);
+
+        $user = auth()->user();
+
+        // Authorization check
+        if ($user->role === 'student' && $student->user_id !== $user->id) {
+            return $this->error('Unauthorized. You can only view your own reports.', 403);
+        }
+        if ($user->role === 'parent' && $student->parent_id !== $user->id) {
+            return $this->error('Unauthorized. You can only view your own children\'s reports.', 403);
+        }
+
+        // Attendance Stats
+        $attendanceData = $student->attendance();
+        $totalAttendance = $attendanceData->count();
+        $presentCount = (clone $attendanceData)->where('status', 'present')->count();
+        $absentCount = (clone $attendanceData)->where('status', 'absent')->count();
+        $lateCount = (clone $attendanceData)->where('status', 'late')->count();
+
+        $attendance = [
+            'total_sessions'   => $totalAttendance,
+            'present'          => $presentCount,
+            'absent'           => $absentCount,
+            'late'             => $lateCount,
+            'attendance_rate'  => $totalAttendance > 0 ? round(($presentCount / $totalAttendance) * 100, 2) : 0,
+        ];
+
+        // Assignment Summary
+        $assignments = [
+            'total'     => $student->assignments()->count(),
+            'assigned'  => $student->assignments()->where('status', 'assigned')->count(),
+            'submitted' => $student->assignments()->where('status', 'submitted')->count(),
+            'graded'    => $student->assignments()->where('status', 'graded')->count(),
+        ];
+
+        // Progress Details
+        $progress = $student->progress()
+            ->with(['subject', 'level'])
+            ->get()
+            ->map(function ($p) {
+                return [
+                    'subject'              => $p->subject->name ?? 'N/A',
+                    'level'                => $p->level->level_name ?? 'N/A',
+                    'worksheets_completed' => $p->worksheets_completed,
+                    'average_score'        => $p->average_score,
+                    'is_level_complete'    => $p->is_level_complete,
+                    'started_at'           => $p->level_started_at ? $p->level_started_at->format('Y-m-d') : null,
+                    'completed_at'         => $p->level_completed_at ? $p->level_completed_at->format('Y-m-d') : null,
+                ];
+            });
+
+        // Recent Performance (Graded Submissions)
+        $performance = Submission::where('student_id', $student->id)
+            ->where('status', 'graded')
+            ->with(['assignment.worksheet'])
+            ->latest('graded_at')
+            ->limit(10)
+            ->get()
+            ->map(function ($s) {
+                return [
+                    'worksheet'   => $s->assignment->worksheet->title ?? 'N/A',
+                    'score'       => $s->score,
+                    'errors'      => $s->error_count,
+                    'graded_at'   => $s->graded_at ? $s->graded_at->format('Y-m-d') : null,
+                    'feedback'    => $s->teacher_feedback,
+                ];
+            });
+
+        return $this->success([
+            'student_info' => [
+                'name'          => $student->user->name,
+                'enrollment_no' => $student->enrollment_no,
+                'grade'         => $student->grade,
+                'center'        => $student->center->name ?? 'N/A',
+            ],
+            'attendance'  => $attendance,
+            'assignments' => $assignments,
+            'progress'    => $progress,
+            'performance' => $performance,
+        ], 'Student reports retrieved successfully.');
     }
 }

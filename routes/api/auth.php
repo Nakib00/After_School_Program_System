@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\StudentController;
 
 
 // Public routes
@@ -27,10 +28,6 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/parents', [AuthController::class, 'indexParents']);
     });
 
-
-    Route::get('/student/dashboard', function () {
-        return response()->json(['message' => 'Welcome Student']);
-    })->middleware('role:student');
 
     Route::get('/parent/dashboard', function () {
         return response()->json(['message' => 'Welcome Parent']);
