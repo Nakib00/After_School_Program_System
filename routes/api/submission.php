@@ -17,6 +17,7 @@ Route::middleware('auth:api')->group(function () {
             Route::get('/pending', [SubmissionController::class, 'pendingSubmissions']);
             Route::get('/assignment/{assignmentId}', [SubmissionController::class, 'getByAssignmentId']);
             Route::get('/{id}', [SubmissionController::class, 'show']);
+            Route::get('/{id}/download', [SubmissionController::class, 'download']);
         });
     });
 });

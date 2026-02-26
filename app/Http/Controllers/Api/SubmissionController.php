@@ -154,6 +154,17 @@ class SubmissionController extends Controller
      */
     public function getByAssignmentId($assignmentId)
     {
+        $assignment = Assignment::find($assignmentId);
+        if (!$assignment) return $this->error('Assignment not found.', 404);
+
+        $user = auth()->user();
+        if ($user->role === 'student') {
+            $student = $user->student;
+            if (!$student || $assignment->student_id !== $student->id) {
+                return $this->error('Unauthorized. You can only view your own submissions.', 403);
+            }
+        }
+
         $submission = Submission::with(['assignment.worksheet', 'grader'])
             ->where('assignment_id', $assignmentId)
             ->first();
@@ -162,6 +173,38 @@ class SubmissionController extends Controller
 
         // Accessor 'submitted_file' already returns the full URL
         return $this->success($submission, 'Submission details retrieved successfully.');
+    }
+
+    /**
+     * Download submitted file.
+     */
+    public function download($id)
+    {
+        $submission = Submission::find($id);
+        if (!$submission) return $this->error('Submission not found.', 404);
+
+        $user = auth()->user();
+        if ($user->role === 'student') {
+            $student = $user->student;
+            if (!$student || $submission->student_id !== $student->id) {
+                return $this->error('Unauthorized. You can only download your own submissions.', 403);
+            }
+        }
+
+        // Get the raw value from the database (bypassing the accessor if necessary, 
+        // though we need the relative path for Storage::download)
+        // Laravel's getRawOriginal can be used if needed, or simply use the attribute 
+        // and strip the base URL if the accessor makes it a full URL.
+        // Actually, it's better to just use the field directly from the model if possible, 
+        // but model attributes go through accessors.
+
+        $filePath = $submission->getRawOriginal('submitted_file');
+
+        if (!Storage::disk('public')->exists($filePath)) {
+            return $this->error('File not found on server.', 404);
+        }
+
+        return Storage::disk('public')->download($filePath);
     }
 
     /**
