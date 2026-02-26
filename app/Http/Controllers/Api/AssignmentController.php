@@ -99,7 +99,7 @@ class AssignmentController extends Controller
      */
     public function show($id)
     {
-        $assignment = Assignment::with(['student.user', 'worksheet', 'teacher', 'submission'])->find($id);
+        $assignment = Assignment::with(['student.user', 'worksheet.subject', 'worksheet.level', 'teacher', 'submission'])->find($id);
         if (!$assignment) return $this->error('Assignment not found.', 404);
 
         return $this->success($assignment, 'Assignment details retrieved successfully.');
