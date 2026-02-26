@@ -9,5 +9,6 @@ Route::middleware(['auth:api', 'role:parent'])->group(function () {
         Route::get('/children-attendance', [StudentController::class, 'childrenAttendance']);
         Route::get('/children-assignments', [StudentController::class, 'childrenAssignments']);
         Route::get('/children-fees', [StudentController::class, 'childrenFees']);
+        Route::get('/dashboard', [StudentController::class, 'parentDashboard']);
     });
 });

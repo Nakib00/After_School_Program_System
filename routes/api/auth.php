@@ -27,9 +27,4 @@ Route::middleware('auth:api')->group(function () {
     Route::middleware('role:center_admin,super_admin')->group(function () {
         Route::get('/parents', [AuthController::class, 'indexParents']);
     });
-
-
-    Route::get('/parent/dashboard', function () {
-        return response()->json(['message' => 'Welcome Parent']);
-    })->middleware('role:parent');
 });

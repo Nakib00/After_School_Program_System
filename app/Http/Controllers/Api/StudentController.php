@@ -379,6 +379,53 @@ class StudentController extends Controller
     }
 
     /**
+     * Parent dashboard data.
+     * Accessible by: parent.
+     */
+    public function parentDashboard(Request $request)
+    {
+        $user = $request->user();
+
+        if ($user->role !== 'parent') {
+            return $this->error('Unauthorized. Only parents can access this endpoint.', 403);
+        }
+
+        $students = Student::with(['user', 'center', 'teacher.teacher'])
+            ->where('parent_id', $user->id)
+            ->get();
+
+        $dashboardData = [
+            'parent_info' => $user,
+            'children_count' => $students->count(),
+            'children_summary' => $students->map(function ($student) {
+                return [
+                    'student_info' => [
+                        'id'            => $student->id,
+                        'name'          => $student->user->name,
+                        'enrollment_no' => $student->enrollment_no,
+                        'grade'         => $student->grade,
+                        'center'        => $student->center->name ?? 'N/A',
+                        'profile_image' => $student->user->profile_photo_path,
+                    ],
+                    'stats' => [
+                        'total_assignments' => $student->assignments()->count(),
+                        'pending_assignments' => $student->assignments()->where('status', 'assigned')->count(),
+                        'submitted_assignments' => $student->assignments()->where('status', 'submitted')->count(),
+                        'graded_assignments' => $student->assignments()->where('status', 'graded')->count(),
+                    ],
+                    'recent_assignments' => $student->assignments()
+                        ->with(['worksheet', 'teacher'])
+                        ->latest()
+                        ->limit(3)
+                        ->get(),
+                ];
+            })
+        ];
+
+        return $this->success($dashboardData, 'Parent dashboard data retrieved successfully.');
+    }
+
+    /**
      * Get detailed reports for all children of a parent.
      * Accessible by: parent.
      */

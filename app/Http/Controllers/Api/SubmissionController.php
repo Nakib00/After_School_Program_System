@@ -220,6 +220,13 @@ class SubmissionController extends Controller
         $submission = Submission::with(['assignment.worksheet', 'grader'])->find($id);
         if (!$submission) return $this->error('Submission not found.', 404);
 
+        $user = auth()->user();
+
+        // Access check for parent
+        if ($user->role === 'parent' && $submission->student->parent_id !== $user->id) {
+            return $this->error('Unauthorized. You can only view your own children\'s submissions.', 403);
+        }
+
         // Accessor 'submitted_file' already returns the full URL
         return $this->success($submission, 'Submission details retrieved successfully.');
     }
@@ -238,6 +245,11 @@ class SubmissionController extends Controller
             if (!$student || $assignment->student_id !== $student->id) {
                 return $this->error('Unauthorized. You can only view your own submissions.', 403);
             }
+        }
+
+        // Access check for parent
+        if ($user->role === 'parent' && $assignment->student->parent_id !== $user->id) {
+            return $this->error('Unauthorized. You can only view your own children\'s submissions.', 403);
         }
 
         $submission = Submission::with(['assignment.worksheet', 'grader'])
@@ -264,6 +276,11 @@ class SubmissionController extends Controller
             if (!$student || $submission->student_id !== $student->id) {
                 return $this->error('Unauthorized. You can only download your own submissions.', 403);
             }
+        }
+
+        // Access check for parent
+        if ($user->role === 'parent' && $submission->student->parent_id !== $user->id) {
+            return $this->error('Unauthorized. You can only download your own children\'s submissions.', 403);
         }
 
         // Get the raw value from the database (bypassing the accessor if necessary, 
