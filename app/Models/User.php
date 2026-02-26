@@ -28,6 +28,11 @@ class User extends Authenticatable implements JWTSubject
     ];
 
     /**
+     * Appended attributes
+     */
+    protected $appends = ['teacherid'];
+
+    /**
      * Hidden attributes
      */
     protected $hidden = [
@@ -51,6 +56,14 @@ class User extends Authenticatable implements JWTSubject
     {
         if (!$value) return null;
         return url(Storage::url($value));
+    }
+
+    /**
+     * Accessor for teacherid (ID from teacher table).
+     */
+    public function getTeacheridAttribute()
+    {
+        return $this->teacher?->id;
     }
 
     /**

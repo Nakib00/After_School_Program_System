@@ -28,7 +28,7 @@ class StudentController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $query = Student::with(['user', 'center']);
+        $query = Student::with(['user', 'center', 'teacher.teacher']);
 
         // Filter by center if not super admin
         if ($user->role !== 'super_admin') {
@@ -121,14 +121,18 @@ class StudentController extends Controller
      */
     public function show($id)
     {
-        $student = Student::with(['user', 'center', 'parent', 'teacher'])->find($id);
+        $student = Student::with(['user', 'center', 'parent', 'teacher.teacher'])->find($id);
+        if (!$student) return $this->error('Student not found.', 404);
 
-        if (!$student) {
-            return $this->error('Student not found.', 404);
-        }
+        $user = auth()->user();
 
         // Parent can only see their own children
-        if (auth()->user()->role === 'parent' && $student->parent_id !== auth()->id()) {
+        if ($user->role === 'parent' && $student->parent_id !== $user->id) {
+            return $this->error('Unauthorized to view this student.', 403);
+        }
+
+        // Teacher can only see their own students
+        if ($user->role === 'teacher' && $student->teacher_id !== $user->id) {
             return $this->error('Unauthorized to view this student.', 403);
         }
 
@@ -244,6 +248,18 @@ class StudentController extends Controller
         $student = Student::find($id);
         if (!$student) return $this->error('Student not found.', 404);
 
+        $user = auth()->user();
+
+        // Parent can only see their own children
+        if ($user->role === 'parent' && $student->parent_id !== $user->id) {
+            return $this->error('Unauthorized.', 403);
+        }
+
+        // Teacher can only see their own students
+        if ($user->role === 'teacher' && $student->teacher_id !== $user->id) {
+            return $this->error('Unauthorized.', 403);
+        }
+
         $progress = $student->progress()->with(['subject', 'level'])->get();
         return $this->success($progress, 'Student progress retrieved successfully.');
     }
@@ -257,8 +273,15 @@ class StudentController extends Controller
         $student = Student::find($id);
         if (!$student) return $this->error('Student not found.', 404);
 
+        $user = auth()->user();
+
         // Access check for parent
-        if (auth()->user()->role === 'parent' && $student->parent_id !== auth()->id()) {
+        if ($user->role === 'parent' && $student->parent_id !== $user->id) {
+            return $this->error('Unauthorized.', 403);
+        }
+
+        // Teacher can only see their own students
+        if ($user->role === 'teacher' && $student->teacher_id !== $user->id) {
             return $this->error('Unauthorized.', 403);
         }
 
@@ -275,8 +298,15 @@ class StudentController extends Controller
         $student = Student::find($id);
         if (!$student) return $this->error('Student not found.', 404);
 
+        $user = auth()->user();
+
         // Access check for parent
-        if (auth()->user()->role === 'parent' && $student->parent_id !== auth()->id()) {
+        if ($user->role === 'parent' && $student->parent_id !== $user->id) {
+            return $this->error('Unauthorized.', 403);
+        }
+
+        // Teacher can only see their own students
+        if ($user->role === 'teacher' && $student->teacher_id !== $user->id) {
             return $this->error('Unauthorized.', 403);
         }
 
@@ -316,7 +346,7 @@ class StudentController extends Controller
     public function dashboard(Request $request)
     {
         $user = $request->user();
-        $student = Student::with(['user', 'center', 'teacher'])->where('user_id', $user->id)->first();
+        $student = Student::with(['user', 'center', 'teacher.teacher'])->where('user_id', $user->id)->first();
 
         if (!$student) {
             return $this->error('Student profile not found.', 404);
@@ -354,7 +384,7 @@ class StudentController extends Controller
      */
     public function reports($id)
     {
-        $student = Student::with(['user', 'center', 'teacher', 'parent'])->find($id);
+        $student = Student::with(['user', 'center', 'teacher.teacher', 'parent'])->find($id);
         if (!$student) return $this->error('Student not found.', 404);
 
         $user = auth()->user();
@@ -365,6 +395,9 @@ class StudentController extends Controller
         }
         if ($user->role === 'parent' && $student->parent_id !== $user->id) {
             return $this->error('Unauthorized. You can only view your own children\'s reports.', 403);
+        }
+        if ($user->role === 'teacher' && $student->teacher_id !== $user->id) {
+            return $this->error('Unauthorized. You can only view your own students\' reports.', 403);
         }
 
         // Attendance Stats
