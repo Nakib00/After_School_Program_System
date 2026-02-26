@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\StudentController;
+use App\Http\Controllers\Api\SuperAdminController;
 
 
 // Public routes
@@ -18,11 +19,10 @@ Route::middleware('auth:api')->group(function () {
 
     // Role-guarded examples
     Route::middleware('role:super_admin')->group(function () {
-        Route::get('/super-admin/dashboard', function () {
-            return response()->json(['message' => 'Welcome Super Admin']);
-        });
+        Route::get('/super-admin/dashboard', [SuperAdminController::class, 'dashboard']);
         Route::get('/center-admins', [AuthController::class, 'indexCenterAdmins']);
     });
+
 
     Route::middleware('role:center_admin,super_admin')->group(function () {
         Route::get('/parents', [AuthController::class, 'indexParents']);
