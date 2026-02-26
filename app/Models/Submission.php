@@ -54,4 +54,17 @@ class Submission extends Model
     {
         return $this->belongsTo(User::class, 'graded_by');
     }
+
+    /**
+     * Accessor for full submitted file URL.
+     */
+    public function getSubmittedFileAttribute($value)
+    {
+        if (!$value) {
+            return null;
+        }
+
+        // Return full URL for the submitted file
+        return url('storage/' . $value);
+    }
 }
