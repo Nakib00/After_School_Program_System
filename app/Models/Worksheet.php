@@ -55,4 +55,17 @@ class Worksheet extends Model
     {
         return $this->hasMany(Assignment::class);
     }
+
+    /**
+     * Accessor for full file URL.
+     */
+    public function getFilePathAttribute($value)
+    {
+        if (!$value) {
+            return null;
+        }
+
+        // Return full URL for the worksheet file
+        return url('storage/' . $value);
+    }
 }

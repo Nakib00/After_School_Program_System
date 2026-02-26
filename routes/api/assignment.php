@@ -7,7 +7,7 @@ Route::middleware('auth:api')->group(function () {
     Route::prefix('assignment')->group(function () {
 
         // Teacher, Center Admin, Super Admin
-        Route::middleware('role:super_admin,center_admin,teacher')->group(function () {
+        Route::middleware('role:super_admin,center_admin,teacher,student')->group(function () {
             Route::get('/', [AssignmentController::class, 'index']);
             Route::get('/{id}', [AssignmentController::class, 'show']);
         });

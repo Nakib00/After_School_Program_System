@@ -283,6 +283,27 @@ class StudentController extends Controller
     }
 
     /**
+     * Student's own assignments.
+     * Accessible by: student.
+     */
+    public function myAssignments(Request $request)
+    {
+        $user = $request->user();
+        $student = Student::where('user_id', $user->id)->first();
+
+        if (!$student) {
+            return $this->error('Student profile not found.', 404);
+        }
+
+        $assignments = $student->assignments()
+            ->with(['worksheet', 'teacher'])
+            ->latest()
+            ->get();
+
+        return $this->success($assignments, 'Your assignments retrieved successfully.');
+    }
+
+    /**
      * Student's fee history.
      * Accessible by: super_admin, center_admin, parent.
      */

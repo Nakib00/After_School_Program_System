@@ -7,6 +7,11 @@ use App\Http\Controllers\Api\StudentController;
 Route::middleware('auth:api')->group(function () {
     Route::prefix('student')->group(function () {
 
+        // Specific static routes first
+        Route::middleware('role:student')->group(function () {
+            Route::get('/my-assignments', [StudentController::class, 'myAssignments']);
+        });
+
         // Super Admin and Center Admin
         Route::middleware('role:super_admin,center_admin')->group(function () {
             Route::post('/', [StudentController::class, 'store']);
