@@ -88,7 +88,7 @@ class WorksheetController extends Controller
         $worksheet = Worksheet::with(['subject', 'level'])->find($id);
         if (!$worksheet) return $this->error('Worksheet not found.', 404);
 
-        $worksheet->file_url = asset('storage/' . $worksheet->file_path);
+        // Accessor 'file_path' already returns the full URL
         return $this->success($worksheet, 'Worksheet details retrieved successfully.');
     }
 
@@ -119,8 +119,8 @@ class WorksheetController extends Controller
 
             if ($request->hasFile('pdf_file')) {
                 // Delete old file
-                if ($worksheet->file_path) {
-                    Storage::disk('public')->delete($worksheet->file_path);
+                if ($worksheet->getRawOriginal('file_path')) {
+                    Storage::disk('public')->delete($worksheet->getRawOriginal('file_path'));
                 }
                 $data['file_path'] = $request->file('pdf_file')->store('worksheets', 'public');
             }
@@ -141,8 +141,8 @@ class WorksheetController extends Controller
         $worksheet = Worksheet::find($id);
         if (!$worksheet) return $this->error('Worksheet not found.', 404);
 
-        if ($worksheet->file_path) {
-            Storage::disk('public')->delete($worksheet->file_path);
+        if ($worksheet->getRawOriginal('file_path')) {
+            Storage::disk('public')->delete($worksheet->getRawOriginal('file_path'));
         }
 
         $worksheet->delete();
@@ -156,10 +156,13 @@ class WorksheetController extends Controller
     public function download($id)
     {
         $worksheet = Worksheet::find($id);
-        if (!$worksheet || !$worksheet->file_path) {
+        // Use getRawOriginal to get the relative path for Storage operations
+        $rawPath = $worksheet ? $worksheet->getRawOriginal('file_path') : null;
+
+        if (!$worksheet || !$rawPath) {
             return $this->error('File not found.', 404);
         }
 
-        return Storage::disk('public')->download($worksheet->file_path, $worksheet->title . '.pdf');
+        return Storage::disk('public')->download($rawPath, $worksheet->title . '.pdf');
     }
 }

@@ -145,7 +145,7 @@ class SubmissionController extends Controller
         $submission = Submission::with(['assignment.worksheet', 'grader'])->find($id);
         if (!$submission) return $this->error('Submission not found.', 404);
 
-        $submission->file_url = asset('storage/' . $submission->submitted_file);
+        // Accessor 'submitted_file' already returns the full URL
         return $this->success($submission, 'Submission details retrieved successfully.');
     }
 
@@ -160,7 +160,7 @@ class SubmissionController extends Controller
 
         if (!$submission) return $this->error('Submission not found.', 404);
 
-        $submission->file_url = asset('storage/' . $submission->submitted_file);
+        // Accessor 'submitted_file' already returns the full URL
         return $this->success($submission, 'Submission details retrieved successfully.');
     }
 
