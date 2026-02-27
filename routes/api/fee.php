@@ -11,5 +11,6 @@ Route::middleware(['auth:api'])->group(function () {
     Route::post('/fees/mark-overdue', [FeeController::class, 'markAsOverdue']);
 
     Route::get('/fees/{id}', [FeeController::class, 'show']);
+    Route::put('/fees/{id}', [FeeController::class, 'update']);
     Route::put('/fees/{id}/pay', [FeeController::class, 'markAsPaid']);
 });

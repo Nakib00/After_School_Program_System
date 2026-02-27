@@ -38,6 +38,10 @@ class FeeController extends Controller
         }
 
         // Filters
+        if ($request->has('center_id')) {
+            $query->where('center_id', $request->center_id);
+        }
+
         if ($request->has('student_id')) {
             $query->where('student_id', $request->student_id);
         }
@@ -158,16 +162,61 @@ class FeeController extends Controller
         return $this->success($fee, 'Fee marked as paid successfully.');
     }
 
+    public function update(Request $request, $id)
+    {
+        $user = auth()->user();
+        $fee = Fee::find($id);
+
+        if (!$fee) {
+            return $this->error('Fee record not found.', 404);
+        }
+
+        // Access check - only center_admin of the same center or super_admin
+        if ($user->role === 'center_admin' && $fee->center_id !== $user->center_id) {
+            return $this->error('Unauthorized to update this fee record.', 403);
+        }
+
+        if ($user->role === 'parent') {
+            return $this->error('Parents are not allowed to update fee records.', 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'month'          => 'nullable|string|regex:/^\d{4}-\d{2}$/',
+            'amount'         => 'nullable|numeric|min:0',
+            'due_date'       => 'nullable|date',
+            'paid_date'      => 'nullable|date',
+            'status'         => 'nullable|in:paid,unpaid,overdue,cancelled',
+            'payment_method' => 'nullable|string|max:50',
+            'transaction_id' => 'nullable|string|max:100',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationError($validator->errors());
+        }
+
+        $fee->update($request->all());
+
+        return $this->success($fee, 'Fee record updated successfully.');
+    }
+
     /**
      * Mark fee as overdue (can be called by a scheduled job or manually).
      * Accessible by: center_admin, super_admin.
      */
     public function markAsOverdue(Request $request)
     {
+        $user = auth()->user();
         $today = now()->toDateString();
-        $count = Fee::where('status', 'unpaid')
-            ->where('due_date', '<', $today)
-            ->update(['status' => 'overdue']);
+
+        $query = Fee::where('status', 'unpaid')
+            ->where('due_date', '<', $today);
+
+        // Center Admin should only mark their own fees as overdue
+        if ($user->role === 'center_admin') {
+            $query->where('center_id', $user->center_id);
+        }
+
+        $count = $query->update(['status' => 'overdue']);
 
         return $this->success(['updated_count' => $count], "Marked $count fees as overdue.");
     }
@@ -211,5 +260,46 @@ class FeeController extends Controller
 
         $fees = $query->get();
         return $this->success($fees, 'Unpaid and overdue fees retrieved.');
+    }
+
+    /**
+     * Update a fee record.
+     * Accessible by: center_admin, super_admin.
+     */
+    public function update(Request $request, $id)
+    {
+        $user = auth()->user();
+        $fee = Fee::find($id);
+
+        if (!$fee) {
+            return $this->error('Fee record not found.', 404);
+        }
+
+        // Access check - only center_admin of the same center or super_admin
+        if ($user->role === 'center_admin' && $fee->center_id !== $user->center_id) {
+            return $this->error('Unauthorized to update this fee record.', 403);
+        }
+
+        if ($user->role === 'parent') {
+            return $this->error('Parents are not allowed to update fee records.', 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'month'          => 'nullable|string|regex:/^\d{4}-\d{2}$/',
+            'amount'         => 'nullable|numeric|min:0',
+            'due_date'       => 'nullable|date',
+            'paid_date'      => 'nullable|date',
+            'status'         => 'nullable|in:paid,unpaid,overdue,cancelled',
+            'payment_method' => 'nullable|string|max:50',
+            'transaction_id' => 'nullable|string|max:100',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationError($validator->errors());
+        }
+
+        $fee->update($request->all());
+
+        return $this->success($fee, 'Fee record updated successfully.');
     }
 }
