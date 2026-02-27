@@ -37,11 +37,6 @@ class FeeController extends Controller
             $query->where('center_id', $user->center_id);
         }
 
-        // Filters
-        if ($request->has('center_id')) {
-            $query->where('center_id', $request->center_id);
-        }
-
         if ($request->has('student_id')) {
             $query->where('student_id', $request->student_id);
         }
@@ -260,5 +255,25 @@ class FeeController extends Controller
 
         $fees = $query->get();
         return $this->success($fees, 'Unpaid and overdue fees retrieved.');
+    }
+
+    /**
+     * Get all fees for a specific center.
+     * Accessible by: center_admin (own), super_admin (all).
+     */
+    public function getByCenter(Request $request, $center_id)
+    {
+        $user = auth()->user();
+
+        if ($user->role === 'parent' || $user->role === 'student' || $user->role === 'teacher') {
+            return $this->error('Unauthorized.', 403);
+        }
+
+        $fees = Fee::with(['student.user', 'student.parent', 'center'])
+            ->where('center_id', $center_id)
+            ->orderBy('month', 'desc')
+            ->get();
+
+        return $this->success($fees, "Fees for center $center_id retrieved successfully.");
     }
 }

@@ -286,4 +286,89 @@ class ReportController extends Controller
         $present = Attendance::where('status', 'present')->count();
         return round(($present / $total) * 100, 2);
     }
+
+    /**
+     * Get a comprehensive detailed report for a center.
+     * Accessible by: center_admin (own), super_admin (all).
+     */
+    public function centerDetailedReport($id)
+    {
+        $user = auth()->user();
+        $center = Center::find($id);
+
+        if (!$center) {
+            return $this->error('Center not found.', 404);
+        }
+
+        if (in_array($user->role, ['parent', 'student', 'teacher'])) {
+            return $this->error('Unauthorized.', 403);
+        }
+
+        $report = [
+            'center_info' => $center,
+            'financial_summary' => [
+                'total_revenue' => Fee::where('center_id', $id)->where('status', 'paid')->sum('amount'),
+                'pending_revenue' => Fee::where('center_id', $id)->whereIn('status', ['unpaid', 'overdue'])->sum('amount'),
+                'collection_rate' => $this->calculateFeeRate($id),
+                'monthly_collection' => $this->getMonthlyCollectionSummaryByCenter($id),
+            ],
+            'academic_summary' => [
+                'total_submissions' => Submission::whereHas('student', function ($q) use ($id) {
+                    $q->where('center_id', $id);
+                })->count(),
+                'avg_center_score' => Submission::whereHas('student', function ($q) use ($id) {
+                    $q->where('center_id', $id);
+                })->avg('score') ?: 0,
+                'total_assignments' => Assignment::whereHas('student', function ($q) use ($id) {
+                    $q->where('center_id', $id);
+                })->count(),
+                'submission_rate' => $this->calculateSubmissionRateByCenter($id),
+            ],
+            'operational_summary' => [
+                'total_students' => Student::where('center_id', $id)->count(),
+                'total_teachers' => Teacher::where('center_id', $id)->count(),
+                'active_students' => Student::where('center_id', $id)->where('status', 'active')->count(),
+            ],
+            'attendance_summary' => [
+                'overall_attendance_rate' => $this->calculateOverallAttendanceRateByCenter($id),
+                'today_attendance' => Attendance::where('center_id', $id)->where('date', now()->toDateString())->count(),
+            ]
+        ];
+
+        return $this->success($report, 'Center detailed report generated.');
+    }
+
+    private function getMonthlyCollectionSummaryByCenter($id)
+    {
+        return Fee::select(
+            'month',
+            DB::raw('SUM(amount) as total_expected'),
+            DB::raw('SUM(CASE WHEN status = "paid" THEN amount ELSE 0 END) as total_collected')
+        )
+            ->where('center_id', $id)
+            ->groupBy('month')
+            ->orderBy('month', 'desc')
+            ->limit(12)
+            ->get();
+    }
+
+    private function calculateSubmissionRateByCenter($id)
+    {
+        $totalAssignments = Assignment::whereHas('student', function ($q) use ($id) {
+            $q->where('center_id', $id);
+        })->count();
+        if ($totalAssignments == 0) return 100;
+        $totalSubmissions = Submission::whereHas('student', function ($q) use ($id) {
+            $q->where('center_id', $id);
+        })->count();
+        return round(($totalSubmissions / $totalAssignments) * 100, 2);
+    }
+
+    private function calculateOverallAttendanceRateByCenter($id)
+    {
+        $total = Attendance::where('center_id', $id)->count();
+        if ($total == 0) return 100;
+        $present = Attendance::where('center_id', $id)->where('status', 'present')->count();
+        return round(($present / $total) * 100, 2);
+    }
 }
