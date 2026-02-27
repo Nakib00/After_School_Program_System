@@ -22,6 +22,7 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/super-admin/dashboard', [SuperAdminController::class, 'dashboard']);
         Route::get('/center-admins', [AuthController::class, 'indexCenterAdmins']);
         Route::patch('/users/{id}/toggle-status', [SuperAdminController::class, 'toggleUserStatus']);
+        Route::delete('/center-admins/{id}', [SuperAdminController::class, 'deleteCenterAdmin']);
     });
 
 

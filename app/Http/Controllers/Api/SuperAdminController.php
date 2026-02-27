@@ -93,4 +93,28 @@ class SuperAdminController extends Controller
             ]
         ]);
     }
+
+    /**
+     * Delete a center admin with safety check.
+     * Accessible by: super_admin.
+     */
+    public function deleteCenterAdmin($id)
+    {
+        $user = User::where('role', 'center_admin')->findOrFail($id);
+
+        // Check if assigned to a center
+        if ($user->center()->exists()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'first remove form the center than you can delet the center admin'
+            ], 400);
+        }
+
+        $user->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Center admin deleted successfully.'
+        ]);
+    }
 }
