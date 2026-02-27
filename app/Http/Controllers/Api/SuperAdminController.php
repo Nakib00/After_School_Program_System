@@ -64,4 +64,33 @@ class SuperAdminController extends Controller
             ]),
         ]);
     }
+
+    /**
+     * Toggle user active status.
+     * Accessible by: super_admin.
+     */
+    public function toggleUserStatus($id)
+    {
+        $user = User::findOrFail($id);
+
+        // Prevent super admin from deactivating themselves
+        if ($user->id === auth()->id()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'You cannot deactivate your own account.'
+            ], 400);
+        }
+
+        $user->is_active = !$user->is_active;
+        $user->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'User status updated successfully.',
+            'data' => [
+                'id' => $user->id,
+                'is_active' => $user->is_active
+            ]
+        ]);
+    }
 }

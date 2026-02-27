@@ -106,6 +106,12 @@ class AuthController extends Controller
 
         $user = auth()->user();
 
+        // Check if user is active
+        if (!$user->is_active) {
+            auth()->logout();
+            return $this->error("you do't have acess contact the admin.", 403);
+        }
+
         // Include role-specific data
         if ($user->role === 'center_admin') {
             $user->load('center');

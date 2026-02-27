@@ -26,7 +26,7 @@ class FeeController extends Controller
     public function index(Request $request)
     {
         $user = auth()->user();
-        $query = Fee::with(['student.user', 'center']);
+        $query = Fee::with(['student.user', 'student.parent', 'center']);
 
         // Role-based access control
         if ($user->role === 'parent') {
@@ -111,7 +111,7 @@ class FeeController extends Controller
     public function show($id)
     {
         $user = auth()->user();
-        $fee = Fee::with(['student.user', 'center'])->find($id);
+        $fee = Fee::with(['student.user', 'student.parent', 'center'])->find($id);
 
         if (!$fee) {
             return $this->error('Fee record not found.', 404);
@@ -202,7 +202,7 @@ class FeeController extends Controller
         $user = auth()->user();
         $centerId = $request->center_id ?: $user->center_id;
 
-        $query = Fee::with('student.user')
+        $query = Fee::with(['student.user', 'student.parent'])
             ->whereIn('status', ['unpaid', 'overdue']);
 
         if ($centerId) {
