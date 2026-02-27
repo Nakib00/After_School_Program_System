@@ -11,4 +11,5 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/reports/fee-collection', [ReportController::class, 'feeCollectionReport']);
     Route::get('/reports/attendance', [ReportController::class, 'attendanceReport']);
     Route::get('/reports/level-progression', [ReportController::class, 'levelProgressionReport']);
+    Route::get('/reports/full-system', [ReportController::class, 'fullSystemReport']);
 });

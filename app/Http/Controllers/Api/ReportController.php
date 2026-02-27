@@ -197,16 +197,93 @@ class ReportController extends Controller
      */
     public function levelProgressionReport(Request $request)
     {
-        $centerId = $request->center_id ?: auth()->user()->center_id;
+        $center_id = $request->center_id ?: auth()->user()->center_id;
 
         $report = StudentProgress::with(['level', 'subject'])
-            ->whereHas('student', function ($q) use ($centerId) {
-                if ($centerId) $q->where('center_id', $centerId);
+            ->whereHas('student', function ($q) use ($center_id) {
+                if ($center_id) $q->where('center_id', $center_id);
             })
             ->select('level_id', DB::raw('count(*) as student_count'), DB::raw('avg(average_score) as avg_score'))
             ->groupBy('level_id')
             ->get();
 
         return $this->success($report, 'Level progression metrics.');
+    }
+
+    /**
+     * Full system report for Super Admin.
+     */
+    public function fullSystemReport()
+    {
+        if (auth()->user()->role !== 'super_admin') {
+            return $this->error('Unauthorized. Super Admin only.', 403);
+        }
+
+        $report = [
+            'financial_summary' => [
+                'total_revenue' => Fee::where('status', 'paid')->sum('amount'),
+                'pending_revenue' => Fee::whereIn('status', ['unpaid', 'overdue'])->sum('amount'),
+                'collection_rate' => $this->calculateOverallFeeRate(),
+                'monthly_collection' => $this->getMonthlyCollectionSummary(),
+            ],
+            'academic_summary' => [
+                'total_submissions' => Submission::count(),
+                'avg_system_score' => Submission::avg('score') ?: 0,
+                'total_assignments' => Assignment::count(),
+                'submission_rate' => $this->calculateSubmissionRate(),
+            ],
+            'operational_summary' => [
+                'total_centers' => Center::count(),
+                'total_students' => Student::count(),
+                'total_teachers' => Teacher::count(),
+                'avg_students_per_center' => Center::count() > 0 ? Student::count() / Center::count() : 0,
+                'center_wise_distribution' => Center::withCount('students')->get()->map(function ($c) {
+                    return ['name' => $c->name, 'students' => $c->students_count];
+                }),
+            ],
+            'attendance_summary' => [
+                'overall_attendance_rate' => $this->calculateOverallAttendanceRate(),
+                'today_attendance' => Attendance::where('date', now()->toDateString())->count(),
+            ]
+        ];
+
+        return $this->success($report, 'Full system report generated.');
+    }
+
+    private function calculateOverallFeeRate()
+    {
+        $total = Fee::sum('amount');
+        if ($total == 0) return 100;
+        $paid = Fee::where('status', 'paid')->sum('amount');
+        return round(($paid / $total) * 100, 2);
+    }
+
+    private function getMonthlyCollectionSummary()
+    {
+        return Fee::select(
+            'month',
+            DB::raw('SUM(amount) as total_expected'),
+            DB::raw('SUM(CASE WHEN status = "paid" THEN amount ELSE 0 END) as total_collected')
+        )
+            ->groupBy('month')
+            ->orderBy('month', 'desc')
+            ->limit(12)
+            ->get();
+    }
+
+    private function calculateSubmissionRate()
+    {
+        $totalAssignments = Assignment::count();
+        if ($totalAssignments == 0) return 100;
+        $totalSubmissions = Submission::count();
+        return round(($totalSubmissions / $totalAssignments) * 100, 2);
+    }
+
+    private function calculateOverallAttendanceRate()
+    {
+        $total = Attendance::count();
+        if ($total == 0) return 100;
+        $present = Attendance::where('status', 'present')->count();
+        return round(($present / $total) * 100, 2);
     }
 }
