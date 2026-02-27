@@ -1,134 +1,138 @@
 # After School Program System
 
-A comprehensive school management system designed for after-school programs, featuring student tracking, assignment management, attendance marking, fee collection, and detailed performance reporting.
+A powerful and comprehensive school management system tailored for after-school programs. This system streamlines student tracking, assignment automation, attendance management, fee collection, and detailed analytics for parents and administrators.
 
-## Tech Stack
+## 🚀 Key Features
 
-- **Backend:** Laravel 11.x
-- **Authentication:** JWT (JSON Web Token)
-- **Database:** MySQL
+- **User Management**: Multi-role support (Super Admin, Center Admin, Teacher, Student, Parent).
+- **Student Lifecycle**: Automatic `enrollment_no` generation (`S-YYMM101`), `monthly_fee` tracking, and progress monitoring.
+- **Academic Control**: Bulk assignment distribution, PDF worksheet management, and automated grading workflows.
+- **Financial Management**: Bulk fee generation, payment tracking (txn details), and overdue automation.
+- **Rich Reporting**: Comprehensive KPIs for all roles, detailed center performance, and student 360-degree views.
+- **Center Administration**: Manage multiple centers with isolated data access for center admins.
+
+## 🛠️ Technology Stack
+
+- **Framework**: Laravel 11.x
+- **Security**: JWT Authentication (JSON Web Token)
+- **Database**: MySQL 8.x
+- **Storage**: Local/Cloud Disk for worksheets and submissions
+
+## 🔧 Installation & Setup
+
+1. **Clone the Repo**:
+
+    ```bash
+    git clone [repository-url]
+    cd After_school_program_system
+    ```
+
+2. **Install Dependencies**:
+
+    ```bash
+    composer install
+    npm install && npm run build
+    ```
+
+3. **Environment Setup**:
+
+    ```bash
+    cp .env.example .env
+    # Update DB_DATABASE, DB_USERNAME, DB_PASSWORD
+    # Generate Application Key
+    php artisan key:generate
+    # Generate JWT Secret
+    php artisan jwt:secret
+    ```
+
+4. **Database Migration**:
+
+    ```bash
+    php artisan migrate --seed
+    ```
+
+5. **Run Server**:
+    ```bash
+    php artisan serve
+    ```
 
 ---
 
-## API Documentation
+## 📖 API Documentation
 
 ### Base URL
 
-`http://your-domain.com/api`
+`http://localhost:8000/api`
 
-### Authentication API
+### 🔒 Authorization
 
-| Endpoint           | Method | Description                         | Roles         |
-| :----------------- | :----- | :---------------------------------- | :------------ |
-| `/register`        | POST   | Register a new user                 | Admin, Parent |
-| `/login`           | POST   | Authenticate user and get token     | All           |
-| `/logout`          | POST   | Invalidate current session          | All           |
-| `/profile`         | GET    | Current user information            | All           |
-| `/center-admins`   | GET    | List all center admin users         | Super Admin   |
-| `/update-profile`  | POST   | Update name, address, profile image | All           |
-| `/change-password` | POST   | Update account password             | All           |
-
-**Register Body:** `name, email, password, password_confirmation, role (super_admin, center_admin, parents), phone, address, profile_image`
+Most endpoints require a **Bearer Token**. Include it in your headers:
+`Authorization: Bearer {your_token}`
 
 ---
 
-### Center Management
+### 1. Authentication & Profile
 
-| Endpoint              | Method | Description                | Roles              |
-| :-------------------- | :----- | :------------------------- | :----------------- |
-| `/center`             | GET    | List all centers           | Super Admin        |
-| `/center`             | POST   | Create a new center        | Super Admin        |
-| `/center/{id}`        | GET    | View center details        | Super/Center Admin |
-| `/center/{id}`        | PUT    | Update center info         | Super Admin        |
-| `/center/{id}`        | DELETE | Remove a center            | Super Admin        |
-| `/center/stats/{id?}` | GET    | Financial/Count statistics | Super/Center Admin |
+| Endpoint                    | Method | Description                        | Roles               |
+| :-------------------------- | :----- | :--------------------------------- | :------------------ |
+| `/login`                    | POST   | Login and receive JWT token        | All                 |
+| `/logout`                   | POST   | Invalidate current token           | All                 |
+| `/profile`                  | GET    | View current user profile          | All                 |
+| `/update-profile`           | POST   | Update name, phone, address, image | All                 |
+| `/change-password`          | POST   | Update account password            | All                 |
+| `/users/{id}/toggle-status` | PATCH  | Activate/Deactivate a user account | Super, Center Admin |
 
----
+### 2. Center Management
 
-### Student Management
+| Endpoint             | Method               | Description                          | Roles               |
+| :------------------- | :------------------- | :----------------------------------- | :------------------ |
+| `/center`            | GET \| POST          | List all / Create new center         | Super Admin         |
+| `/center/{id}`       | GET \| PUT \| DELETE | View / Update / Remove center        | Super, Center Admin |
+| `/center/stats/{id}` | GET                  | View analytics for a specific center | Super, Center Admin |
 
-| Endpoint                    | Method | Description            | Roles                  |
-| :-------------------------- | :----- | :--------------------- | :--------------------- |
-| `/student`                  | GET    | List students          | Admin, Teacher         |
-| `/student`                  | POST   | Create student profile | Admin                  |
-| `/student/{id}`             | GET    | Detailed profile       | Admin, Teacher, Parent |
-| `/student/{id}`             | PUT    | Update profile         | Admin, Teacher         |
-| `/student/{id}/progress`    | GET    | Level completion data  | All                    |
-| `/student/{id}/assignments` | GET    | History of assignments | Admin, Teacher, Parent |
-| `/student/{id}/attendance`  | GET    | Attendance log         | Admin, Teacher, Parent |
-| `/student/{id}/fees`        | GET    | Payment history        | Admin, Parent          |
+### 3. Student Management
 
----
+| Endpoint                 | Method               | Description                                 | Roles                  |
+| :----------------------- | :------------------- | :------------------------------------------ | :--------------------- |
+| `/student`               | GET \| POST          | List all / Create student (auto-enrollment) | Admin, Teacher         |
+| `/student/{id}`          | GET \| PUT \| DELETE | Full profile / Update / Remove              | Admin, Teacher         |
+| `/student/{id}/progress` | GET                  | Level progression and metrics               | All                    |
+| `/student/{id}/reports`  | GET                  | Full academic/attendance reports            | Admin, Teacher, Parent |
 
-### Teacher Management
+### 4. Fee Management
 
-| Endpoint                   | Method | Description               | Roles          |
-| :------------------------- | :----- | :------------------------ | :------------- |
-| `/teacher`                 | GET    | List teachers             | Admin          |
-| `/teacher`                 | POST   | Create teacher account    | Admin          |
-| `/teacher/{id}`            | GET    | Profile details           | Admin          |
-| `/teacher/assign-students` | POST   | Link students to teacher  | Admin          |
-| `/teacher/{id}/students`   | GET    | List of assigned students | Admin, Teacher |
+| Endpoint            | Method     | Description                                        | Roles               |
+| :------------------ | :--------- | :------------------------------------------------- | :------------------ |
+| `/fees`             | GET        | List fees (filterable by center_id, month, status) | Admin, Parent       |
+| `/fees/center/{id}` | GET        | Get ALL fee records for specific center            | Super, Center Admin |
+| `/fees/generate`    | POST       | Bulk generate student fees for a month             | Admin               |
+| `/fees/{id}`        | GET \| PUT | View details / Update fee record                   | Admin, Parent       |
+| `/fees/{id}/pay`    | PUT        | Mark fee as paid with txn details                  | Admin               |
+| `/fees/report`      | GET        | Financial collection summary                       | Admin               |
 
----
+### 5. Assignments & Submissions
 
-### Worksheet & Assignments
+| Endpoint                 | Method      | Description                                | Roles          |
+| :----------------------- | :---------- | :----------------------------------------- | :------------- |
+| `/assignment`            | GET \| POST | Bulk assign work / View history            | Admin, Teacher |
+| `/worksheet`             | GET \| POST | Manage PDF worksheet library               | Admin, Teacher |
+| `/submission`            | GET \| POST | List all submissions / Student submit work | All            |
+| `/submission/{id}/grade` | PATCH       | Grade work with score and feedback         | Admin, Teacher |
 
-| Endpoint                   | Method | Description               | Roles          |
-| :------------------------- | :----- | :------------------------ | :------------- |
-| `/worksheet`               | POST   | Upload PDF worksheet      | Admin, Teacher |
-| `/worksheet/{id}/download` | GET    | Get worksheet PDF         | All            |
-| `/assignment`              | POST   | Assign to students (Bulk) | Admin, Teacher |
-| `/submission`              | POST   | Submit completed work     | Student        |
-| `/submission/{id}/grade`   | PATCH  | Grade & Feedback          | Admin, Teacher |
-| `/submission/pending`      | GET    | List ungraded work        | Admin, Teacher |
+### 6. Reports & Analytics
 
----
-
-### Fee Management
-
-| Endpoint             | Method | Description                  | Roles         |
-| :------------------- | :----- | :--------------------------- | :------------ |
-| `/fees`              | GET    | List invoice records         | Admin, Parent |
-| `/fees/generate`     | POST   | Bulk create monthly invoices | Admin         |
-| `/fees/{id}/pay`     | PUT    | Mark as paid (+ txn details) | Admin         |
-| `/fees/mark-overdue` | POST   | Update expired unpaid fees   | Admin         |
-| `/fees/report`       | GET    | Collection summary           | Admin         |
+| Endpoint                        | Method | Description                                                  | Roles |
+| :------------------------------ | :----- | :----------------------------------------------------------- | :---- |
+| `/dashboard/kpis`               | GET    | Vital role-based dashboard stats                             | All   |
+| `/reports/center-detailed/{id}` | GET    | Full 360 Overview of Center (Financial/Academic/Operational) | Admin |
+| `/reports/fee-collection`       | GET    | Monthly revenue trends                                       | Admin |
+| `/reports/attendance`           | GET    | Monthly attendance distribution                              | Admin |
 
 ---
 
-### Reports & Dashboard
+## 📁 System Architecture
 
-| Endpoint                         | Method | Description                  | Roles                  |
-| :------------------------------- | :----- | :--------------------------- | :--------------------- |
-| `/dashboard/kpis`                | GET    | Role-scoped vital stats      | All                    |
-| `/reports/center-performance`    | GET    | Growth & revenue metrics     | Admin                  |
-| `/reports/teacher-performance`   | GET    | Grading & student volume     | Admin                  |
-| `/reports/student-detailed/{id}` | GET    | Full 360-degree student view | Admin, Teacher, Parent |
-| `/reports/fee-collection`        | GET    | Monthly revenue breakdown    | Admin                  |
-| `/reports/attendance`            | GET    | Center attendance trends     | Admin                  |
-| `/reports/level-progression`     | GET    | Subject/Level mapping        | Admin                  |
-
----
-
-## Response Format
-
-Success:
-
-```json
-{
-    "status": "Success",
-    "message": "Operation successful.",
-    "data": { ... }
-}
-```
-
-Error:
-
-```json
-{
-    "status": "Error",
-    "message": "Reason for failure",
-    "errors": { ... }
-}
-```
+- **Controllers**: Located in `app/Http/Controllers/Api`
+- **Models**: Located in `app/Models`
+- **Database**: Migrations in `database/migrations`
+- **Traits**: Shared logic for responses in `app/Traits/ApiResponse.php`
