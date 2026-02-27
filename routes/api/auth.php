@@ -21,12 +21,13 @@ Route::middleware('auth:api')->group(function () {
     Route::middleware('role:super_admin')->group(function () {
         Route::get('/super-admin/dashboard', [SuperAdminController::class, 'dashboard']);
         Route::get('/center-admins', [AuthController::class, 'indexCenterAdmins']);
-        Route::patch('/users/{id}/toggle-status', [SuperAdminController::class, 'toggleUserStatus']);
+
         Route::delete('/center-admins/{id}', [SuperAdminController::class, 'deleteCenterAdmin']);
     });
 
 
     Route::middleware('role:center_admin,super_admin')->group(function () {
         Route::get('/parents', [AuthController::class, 'indexParents']);
+        Route::patch('/users/{id}/toggle-status', [SuperAdminController::class, 'toggleUserStatus']);
     });
 });

@@ -57,7 +57,6 @@ class StudentController extends Controller
             'center_id'       => 'required|exists:centers,id',
             'parent_id'       => 'nullable|exists:users,id',
             'teacher_id'      => 'nullable|exists:users,id',
-            'enrollment_no'   => 'nullable|string|max:50|unique:students',
             'date_of_birth'   => 'nullable|date',
             'grade'           => 'nullable|string|max:20',
             'enrollment_date' => 'nullable|date',
@@ -65,6 +64,7 @@ class StudentController extends Controller
             'current_level'   => 'nullable|string|max:20',
             'profile_image'   => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'address'         => 'nullable|string|max:255',
+            'monthly_fee'     => 'nullable|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -79,6 +79,24 @@ class StudentController extends Controller
             if ($file) {
                 $profile_photo_path = $file->store('profile_photos', 'public');
             }
+
+            // Generate Enrollment Number: S-YYM101
+            $year = date('y');
+            $month = date('n');
+            $prefix = "S-{$year}{$month}";
+
+            $lastStudent = Student::where('enrollment_no', 'like', "{$prefix}%")
+                ->latest('id')
+                ->first();
+
+            if ($lastStudent) {
+                $lastNo = intval(substr($lastStudent->enrollment_no, strlen($prefix)));
+                $nextNo = $lastNo + 1;
+            } else {
+                $nextNo = 101;
+            }
+
+            $enrollment_no = $prefix . $nextNo;
 
             // Create User record first
             $user = User::create([
@@ -97,12 +115,13 @@ class StudentController extends Controller
                 'center_id'       => $request->center_id,
                 'parent_id'       => $request->parent_id,
                 'teacher_id'      => $request->teacher_id,
-                'enrollment_no'   => $request->enrollment_no,
+                'enrollment_no'   => $enrollment_no,
                 'date_of_birth'   => $request->date_of_birth,
                 'grade'           => $request->grade,
                 'enrollment_date' => $request->enrollment_date,
                 'subjects'        => $request->subjects,
                 'current_level'   => $request->current_level,
+                'monthly_fee'     => $request->monthly_fee ?? 0,
                 'status'          => 'active',
             ]);
 
@@ -156,7 +175,6 @@ class StudentController extends Controller
             'center_id'       => 'nullable|exists:centers,id',
             'parent_id'       => 'nullable|exists:users,id',
             'teacher_id'      => 'nullable|exists:users,id',
-            'enrollment_no'   => 'nullable|string|max:50|unique:students,enrollment_no,' . $id,
             'date_of_birth'   => 'nullable|date',
             'grade'           => 'nullable|string|max:20',
             'enrollment_date' => 'nullable|date',
@@ -165,6 +183,7 @@ class StudentController extends Controller
             'status'          => 'nullable|in:active,inactive,completed',
             'profile_image'   => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'address'         => 'nullable|string|max:255',
+            'monthly_fee'     => 'nullable|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -195,8 +214,8 @@ class StudentController extends Controller
                 $student->user->update($userData);
             }
 
-            // Update Student record
-            $student->update($request->all());
+            // Update Student record (excluding enrollment_no)
+            $student->update($request->except('enrollment_no'));
 
             DB::commit();
 
